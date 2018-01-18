@@ -1,20 +1,20 @@
 #create a public IP address for the virtual machine
 resource "azurerm_public_ip" "automate_pubip" {
   name                         = "automate_pubip"
-  location                     = "Central US"
+  location                     = "${var.azure_region}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "dynamic"
-  domain_name_label            = "automatesrv"
+  domain_name_label            = "${var.automate_server_name}"
 
   tags {
-    environment = "staging"
+    environment = "${var.azure_env}"
   }
 }
 
 #create the network interface and put it on the proper vlan/subnet
 resource "azurerm_network_interface" "automate_ip" {
   name                = "automate_ip"
-  location            = "Central US"
+  location            = "${var.azure_region}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
 
   ip_configuration {
@@ -28,10 +28,10 @@ resource "azurerm_network_interface" "automate_ip" {
 #create the actual VM
 resource "azurerm_virtual_machine" "automate" {
   name                  = "automate"
-  location              = "Central US"
+  location              = "${var.azure_region}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   network_interface_ids = ["${azurerm_network_interface.automate_ip.id}"]
-  vm_size               = "Standard_D4S_v3"
+  vm_size               = "${var.automate_vm_size}"
 
   storage_image_reference {
     publisher = "Canonical"
@@ -48,9 +48,9 @@ resource "azurerm_virtual_machine" "automate" {
   }
 
   os_profile {
-    computer_name  = "automatesrv"
-    admin_username = "automateadmin"
-    admin_password = "P@ssword1234!"
+    computer_name  = "${var.automate_server_name}"
+    admin_username = "${var.username}"
+    admin_password = "${var.password}"
   }
 
   os_profile_linux_config {
@@ -58,15 +58,15 @@ resource "azurerm_virtual_machine" "automate" {
   }
 
   tags {
-    environment = "staging"
+    environment = "${var.azure_env}"
 
   }
 
   connection {
     host     = "${azurerm_public_ip.automate_pubip.fqdn}"
     type     = "ssh"
-    user     = "automateadmin"
-    password = "P@ssword1234!"
+    user     = "${var.username}"
+    password = "${var.password}"
   }
 
   provisioner "file" {
@@ -79,17 +79,17 @@ resource "azurerm_virtual_machine" "automate" {
     destination = "/tmp/delivery.license"
   }
 
-  provisioner "remote-exec" {
-    inline = [
-      "sudo chmod +x /tmp/InstallChefAutomate.sh",
-      "sudo /tmp/InstallChefAutomate.sh",
-    ]
-  }
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "sudo chmod +x /tmp/InstallChefAutomate.sh",
+  #     "sudo /tmp/InstallChefAutomate.sh",
+  #   ]
+  # }
 }
 
-output "aip" {
-  value = "${azurerm_public_ip.automate_pubip.ip_address}"
-}
+# output "aip" {
+#   value = "${azurerm_public_ip.automate_pubip.ip_address}"
+# }
 
 output "afqdn" {
   value = "${azurerm_public_ip.automate_pubip.fqdn}"

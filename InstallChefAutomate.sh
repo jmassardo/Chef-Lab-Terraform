@@ -2,11 +2,11 @@
 apt-get update
 apt-get -y install curl
 
-chef_server_fqdn=chefsrv.centralus.cloudapp.azure.com
+chef_server_fqdn=jrm-tr-chefsrv.centralus.cloudapp.azure.com
 
 #setup hostname stuff
 #echo "$(hostname -i)  automatesrv.cheflab.local" | tee -a /etc/hosts
-sudo hostnamectl set-hostname automatesrv.centralus.cloudapp.azure.com
+sudo hostnamectl set-hostname jrm-tr-automatesrv.centralus.cloudapp.azure.com
 
 # Configure Automate pre-reqs
 sudo sysctl -w vm.swappiness=1
@@ -23,15 +23,15 @@ if [ ! -d /downloads ]; then
 fi
 
 # download the Chef Automate package
-if [ ! -f /downloads/automate_1.7.39-1_amd64.deb ]; then
+if [ ! -f /downloads/automate_1.7.114-1_amd64.deb ]; then
   echo "Downloading the Chef Automate package..."
-  wget -nv -P /downloads https://packages.chef.io/files/stable/automate/1.7.39/ubuntu/16.04/automate_1.7.39-1_amd64.deb
+  wget -nv -P /downloads https://packages.chef.io/files/stable/automate/1.7.114/ubuntu/16.04/automate_1.7.114-1_amd64.deb
 fi
 
 # install Chef Automate
 if [ ! $(which automate-ctl) ]; then
   echo "Installing Chef Automate..."
-  dpkg -i /downloads/automate_1.7.39-1_amd64.deb
+  dpkg -i /downloads/automate_1.7.114-1_amd64.deb
 
   # run preflight check
   automate-ctl preflight-check

@@ -2,21 +2,21 @@
 
 # Create a resource group to contain all the objects
 resource "azurerm_resource_group" "rg" {
-  name     = "Automate_rg"
-  location = "Central US"
+  name     = "${var.azure_rg_name}"
+  location = "${var.azure_region}"
 }
 
 # Create the virtual network
 resource "azurerm_virtual_network" "vnet" {
-  name                = "Automate_Network"
+  name                = "${var.azure_rg_name}_Network"
   address_space       = ["10.1.0.0/16"]
-  location            = "Central US"
+  location            = "${var.azure_region}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
 # Create the individual subnet for the web servers
 resource "azurerm_subnet" "subnet" {
-  name                 = "Automate_Subnet"
+  name                 = "${var.azure_rg_name}_Subnet"
   resource_group_name  = "${azurerm_resource_group.rg.name}"
   virtual_network_name = "${azurerm_virtual_network.vnet.name}"
   address_prefix       = "10.1.1.0/24"
@@ -24,8 +24,8 @@ resource "azurerm_subnet" "subnet" {
 
 # create the network security group to allow inbound access to the server
 resource "azurerm_network_security_group" "nsg" {
-  name                = "Automate_nsg"
-  location            = "Central US"
+  name                = "${var.azure_rg_name}_nsg"
+  location            = "${var.azure_region}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   
   # create a rule to allow HTTPS inbound to all nodes in the network
@@ -54,8 +54,8 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
   
-  # add an environment tag. 
+  # add an environment tag.
   tags {
-    environment = "Dev"
+    environment = "${var.azure_env}"
   }
 }
