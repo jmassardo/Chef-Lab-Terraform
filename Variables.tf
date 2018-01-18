@@ -29,6 +29,18 @@ variable "automate_vm_size" {
   description = "Specify the VM Size i.e. Standard_D4S_v3"
 }
 
+variable "automate_server_version" {
+  description = "Specify the version of Automate to install i.e. 1.7.114"
+}
+
+variable "automate_server_user" {
+  description = "Initial username for Automate Server i.e. delivery"
+}
+
+variable "automate_server_user_password" {
+  description = "Password for Automate user"
+}
+
 # Chef Server Options
 variable "chef_server_name" {
   description = "Specify the hostname for the Chef server"
@@ -46,8 +58,12 @@ variable "chef_server_user" {
   description = "Initial username for Chef Server i.e. delivery"
 }
 
-variable "chef_server_user_fullname" {
-  description = "Full name for Chef user"
+variable "chef_server_user_firstname" {
+  description = "First name for Chef user"
+}
+
+variable "chef_server_user_lastname" {
+  description = "Last name for Chef user"
 }
 
 variable "chef_server_user_email" {
@@ -80,4 +96,12 @@ variable "chef_server_install_manage" {
 
 variable "chef_server_manage_version" {
   description = "Specify the version of Manage to install i.e. 2.5.8"
+}
+
+variable "chef_node_count" {
+  description = "How many chef nodes should be provisioned"
+}
+
+variable "chef_node_vm_size" {
+  description = "Specify the VM Size i.e. Standard_D1S_v3"
 }

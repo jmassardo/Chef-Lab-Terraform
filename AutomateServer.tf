@@ -70,6 +70,16 @@ resource "azurerm_virtual_machine" "automate" {
   }
 
   provisioner "file" {
+    source      = "labadmin"
+    destination = "/home/labadmin/.ssh/id_rsa"
+  }
+
+  provisioner "file" {
+    source      = "labadmin.pub"
+    destination = "/home/labadmin/.ssh/authorized_keys"
+  }
+
+  provisioner "file" {
     source      = "InstallChefAutomate.sh"
     destination = "/tmp/InstallChefAutomate.sh"
   }
@@ -79,12 +89,12 @@ resource "azurerm_virtual_machine" "automate" {
     destination = "/tmp/delivery.license"
   }
 
-  # provisioner "remote-exec" {
-  #   inline = [
-  #     "sudo chmod +x /tmp/InstallChefAutomate.sh",
-  #     "sudo /tmp/InstallChefAutomate.sh",
-  #   ]
-  # }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo chmod +x /tmp/InstallChefAutomate.sh",
+      "sudo /tmp/InstallChefAutomate.sh -a ${var.automate_server_name} -c ${var.chef_server_name} -d ${var.chef_server_user} -e ${var.chef_server_org_shortname} -v ${var.automate_server_version} -u ${var.automate_server_user} -p ${var.automate_server_user_password} -z ${var.azure_region}",
+    ]
+  }
 }
 
 # output "aip" {
