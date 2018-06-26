@@ -1,30 +1,24 @@
 #!/bin/bash
 
 # Trap arguments
-while getopts a:c:d:e:v:u:p:z: option
-do
- case "${option}"
- in
- a) automate_server_name=${OPTARG};;
- c) chef_server_name=${OPTARG};;
- d) chef_server_user=${OPTARG};;
- e) chef_server_org_shortname=${OPTARG};;
- v) automate_server_version=${OPTARG};;
- u) automate_server_user=${OPTARG};;
- p) automate_server_user_password=${OPTARG};;
- z) azure_region=${OPTARG};;
-
- esac
-done
+automate_server_name=$1
+chef_server_name=$2
+chef_server_user=$3
+chef_server_org_shortname=$4
+automate_server_version=$5
+automate_server_user=$6
+automate_server_user_password=$7
+azure_region=$8
+user_name=$9
+inspec_version=${10}
 
 apt-get update
 apt-get -y install curl
 
-#chef_server_fqdn=jrm-tr-chefsrv.centralus.cloudapp.azure.com
-
-#setup hostname stuff
-#echo "$(hostname -i)  automatesrv.cheflab.local" | tee -a /etc/hosts
-sudo hostnamectl set-hostname ${automate_server_name}.${azure_region}.cloudapp.azure.com
+echo 10.1.1.10 ${chef_server_name}.lab.local | sudo tee -a /etc/hosts
+echo 10.1.1.11 ${automate_server_name}.lab.local | sudo tee -a /etc/hosts
+echo 10.1.1.12 automate2.lab.local | sudo tee -a /etc/hosts
+sudo hostnamectl set-hostname ${automate_server_name}.lab.local
 
 # Configure Automate pre-reqs
 sudo sysctl -w vm.swappiness=1
@@ -54,15 +48,14 @@ if [ ! $(which automate-ctl) ]; then
   # run preflight check
   automate-ctl preflight-check
 
-  # wait until uer pem file has been scp'ed from chef server
-  while [ ! -f /tmp/${chef_server_user}.pem ]
-do
-  echo "Waiting for the chef user pem..."
-  sleep 30
-done
+  # Fetch user pem from Chef server
+  chmod 700 ~/.ssh/id_rsa 
+  ssh-keyscan ${chef_server_name}.lab.local >> ~/.ssh/known_hosts
+  sleep 5s
+  scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -ri ~/.ssh/id_rsa ${user_name}@${chef_server_name}.lab.local:/drop/${chef_server_user}.pem ${chef_server_user}.pem 
 
   # run setup
-  automate-ctl setup --license /tmp/delivery.license --key /tmp/${chef_server_user}.pem --server-url https://${chef_server_name}.${azure_region}.cloudapp.azure.com/organizations/${chef_server_org_shortname} --fqdn $(hostname) --enterprise ${chef_server_org_shortname} --configure --no-build-node
+  automate-ctl setup --license /tmp/automate.license --key ~/${chef_server_user}.pem --server-url https://${chef_server_name}.lab.local/organizations/${chef_server_org_shortname} --fqdn $(hostname) --enterprise ${chef_server_org_shortname} --configure --no-build-node
   automate-ctl reconfigure
 
   # wait for all services to come online
@@ -71,8 +64,21 @@ done
   while (curl --insecure https://localhost/api/_status) | grep "fail"; do sleep 15s; done
 
   # create an initial user
-  echo "Creating delivery user..."
+  echo "Creating Automate user..."
   automate-ctl create-user $chef_server_org_shortname $automate_server_user --password $automate_server_user_password --roles "admin"
 fi
+
+# Install Inspec
+wget -nv -P /downloads https://packages.chef.io/files/stable/inspec/${inspec_version}/ubuntu/16.04/inspec_${inspec_version}-1_amd64.deb
+dpkg -i /downloads/inspec_${inspec_version}-1_amd64.deb
+
+# Log into Automate then upload profiles
+inspec compliance login https://localhost --insecure --user=${automate_server_user} --ent=${chef_server_org_shortname} --dctoken 93a49a4f2482c64126f7b6015e6b0f30284287ee4054ff8807fb63d9cbd1c506
+inspec compliance upload /tmp/labadmin-linux-patch-baseline-0.4.0.tar.gz
+inspec compliance upload /tmp/labadmin-cis-ubuntu16.04lts-level1-server-1.0.0-3.tar.gz
+
+# Setup A1-A2 forwarding
+cp /tmp/05-a2-forwarder.conf /opt/delivery/embedded/etc/logstash/conf.d/05-a2-forwarder.conf
+automate-ctl restart logstash
 
 echo "Your Chef Automate server is ready!"

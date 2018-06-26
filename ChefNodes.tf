@@ -1,11 +1,11 @@
 #create a public IP address for the virtual machine
 resource "azurerm_public_ip" "node_pubip" {
-  count = "${var.chef_node_count}"
+  count                        = "${var.chef_node_count}"
   name                         = "node${count.index}_pubip"
   location                     = "${var.azure_region}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "dynamic"
-  domain_name_label            = "jm-tr-node${count.index}"
+  domain_name_label            = "jm-node${count.index}"
 
   tags {
     environment = "${var.azure_env}"
@@ -14,7 +14,7 @@ resource "azurerm_public_ip" "node_pubip" {
 
 #create the network interface and put it on the proper vlan/subnet
 resource "azurerm_network_interface" "node_ip" {
-  count = "${var.chef_node_count}"
+  count               = "${var.chef_node_count}"
   name                = "node${count.index}_ip"
   location            = "${var.azure_region}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
@@ -23,18 +23,20 @@ resource "azurerm_network_interface" "node_ip" {
     name                          = "node${count.index}_ipconf"
     subnet_id                     = "${azurerm_subnet.subnet.id}"
     private_ip_address_allocation = "dynamic"
+
     # public_ip_address_id          = ["${element(azurerm_public_ip.node_pubip.*.id, count.index)}"]
   }
 }
 
 #create the actual VM
 resource "azurerm_virtual_machine" "node" {
-  count = "${var.chef_node_count}"
+  count                 = "${var.chef_node_count}"
   name                  = "node${count.index}"
   location              = "${var.azure_region}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   network_interface_ids = ["${element(azurerm_network_interface.node_ip.*.id, count.index)}"]
   vm_size               = "${var.chef_node_vm_size}"
+  depends_on            = ["azurerm_virtual_machine.automate2"]
 
   storage_image_reference {
     publisher = "Canonical"
@@ -65,7 +67,7 @@ resource "azurerm_virtual_machine" "node" {
   }
 
   # connection {
-                
+
   #   host     = ["${element(azurerm_public_ip.node.*._pubip.fqdn, count.index)}"]
   #   type     = "ssh"
   #   user     = "${var.username}"
@@ -81,9 +83,9 @@ resource "azurerm_virtual_machine" "node" {
   #   source      = "labadmin.pub"
   #   destination = "/home/labadmin/.ssh/authorized_keys"
   # }
-
 }
 
 # output "node${count.index}fqdn" {
 #   value = ["${element(azurerm_public_ip.node.*._pubip.fqdn, count.index)}"]
 # }
+

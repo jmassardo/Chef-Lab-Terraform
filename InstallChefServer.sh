@@ -1,37 +1,30 @@
 #!/bin/bash
 
-# Trap arguments
-while getopts a:z:c:v:u:p:n:l:e:s:f:j:h:m:g: option
-do
- case "${option}"
- in
- a) automate_server_name=${OPTARG};;
- z) azure_region=${OPTARG};;
- c) chef_server_name=${OPTARG};;
- v) chef_server_version=${OPTARG};;
- u) chef_server_user=${OPTARG};;
- p) chef_server_user_password=${OPTARG};;
- n) chef_server_user_firstname=${OPTARG};;
- l) chef_server_user_lastname=${OPTARG};;
- e) chef_server_user_email=${OPTARG};;
- s) chef_server_org_shortname=${OPTARG};;
- f) chef_server_org_fullname=${OPTARG};;
- j) chef_server_install_pushjobs=${OPTARG};;
- h) chef_server_pushjobs_version=${OPTARG};;
- m) chef_server_install_manage=${OPTARG};;
- g) chef_server_manage_version=${OPTARG};;
-
- esac
-done
+automate_server_name=$1
+azure_region=$2
+chef_server_name=$3
+chef_server_version=$4
+chef_server_user=$5
+chef_server_user_password=$6
+chef_server_user_firstname=$7
+chef_server_user_lastname=$8
+chef_server_user_email=$9
+chef_server_org_shortname=${10}
+chef_server_org_fullname=${11}
+chef_server_install_pushjobs=${12}
+chef_server_pushjobs_version=${13}
+chef_server_install_manage=${14}
+chef_server_manage_version=${15}
+chefdk_version=${16}
 
 # make sure we have everythign we need
 apt-get update
 apt-get -y install curl
 
-#chef_automate_fqdn=jm-tr-automatesrv.centralus.cloudapp.azure.com
-#setup hostname stuff
-#echo "$(hostname -i)  automatesrv.cheflab.local" | tee -a /etc/hosts
-sudo hostnamectl set-hostname ${chef_server_name}.${azure_region}.cloudapp.azure.com
+echo 10.1.1.10 ${chef_server_name}.lab.local | sudo tee -a /etc/hosts
+echo 10.1.1.11 ${automate_server_name}.lab.local | sudo tee -a /etc/hosts
+echo 10.1.1.12 automate2.lab.local | sudo tee -a /etc/hosts
+sudo hostnamectl set-hostname ${chef_server_name}.lab.local
 
 # create staging directories
 if [ ! -d /drop ]; then
@@ -66,16 +59,11 @@ if [ ! $(sudo chef-server-ctl user-list | grep $chef_server_user) ]; then
   chef-server-ctl org-create $chef_server_org_shortname "$chef_server_org_fullname" --association_user $chef_server_user --filename ${chef_server_org_shortname}-validator.pem
 fi
 
-# SCP user pem to automate server
-chmod 700 ~/.ssh/id_rsa 
-ssh-keyscan  ${automate_server_name}.${azure_region}.cloudapp.azure.com >> ~/.ssh/known_hosts
-sleep 5s
-scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -ri ~/.ssh/id_rsa /drop/${chef_server_user}.pem labadmin@${automate_server_name}.${azure_region}.cloudapp.azure.com:/tmp/${chef_server_user}.pem
-
 # configure data collection
 chef-server-ctl set-secret data_collector token '93a49a4f2482c64126f7b6015e6b0f30284287ee4054ff8807fb63d9cbd1c506'
 chef-server-ctl restart nginx
-echo "data_collector['root_url'] = 'https://${automate_server_name}.${azure_region}.cloudapp.azure.com/data-collector/v0/'" >> /etc/opscode/chef-server.rb
+echo "data_collector['root_url'] = 'https://${automate_server_name}.lab.local/data-collector/v0/'" >> /etc/opscode/chef-server.rb
+echo "profiles['root_url'] = 'https://${automate_server_name}.lab.local'" >> /etc/opscode/chef-server.rb
 chef-server-ctl reconfigure
 
 # configure Manage if enabled
@@ -98,6 +86,13 @@ if [ "$chef_server_install_pushjobs" = "true" ]; then
     opscode-push-jobs-server-ctl reconfigure
     chef-server-ctl reconfigure
   fi
+fi
+
+echo "Installing ChefDK"
+wget -nv -P /downloads https://packages.chef.io/files/stable/chefdk/${chefdk_version}/ubuntu/16.04/chefdk_${chefdk_version}-1_amd64.deb
+if [ ! $(which chef) ]; then
+  echo "Installing ChefDK..."
+  dpkg -i /downloads/chefdk_${chefdk_version}-1_amd64.deb
 fi
 
 echo "Your Chef server is ready!"

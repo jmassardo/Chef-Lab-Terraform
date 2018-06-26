@@ -20,9 +20,22 @@ variable "password" {
   description = "Admin password for all VMs"
 }
 
+variable "chefdk_version" {
+  description = "Specify the version of ChefDK to install i.e. 3.0.36"
+}
+
+variable "inspec_version" {
+  default     = "2.1.84"
+  description = "Specify the version of Inspec to install i.e. 2.1.84"
+}
+
 # Automate Server Options
 variable "automate_server_name" {
-  description = "Specify the hostname for the Automate server"
+  description = "Specify the hostname for the Automate 1 server"
+}
+
+variable "automate2_server_name" {
+  description = "Specify the hostname for the Automate 2 server"
 }
 
 variable "automate_vm_size" {
@@ -104,4 +117,13 @@ variable "chef_node_count" {
 
 variable "chef_node_vm_size" {
   description = "Specify the VM Size i.e. Standard_D1S_v3"
+}
+
+# Chef Server Options
+variable "jenkins_server_name" {
+  description = "Specify the hostname for the Jenkins server"
+}
+
+variable "jenkins_vm_size" {
+  description = "Specify the VM Size i.e. Standard_D2S_v3"
 }

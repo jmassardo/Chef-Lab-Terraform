@@ -1,10 +1,10 @@
 #create a public IP address for the virtual machine
-resource "azurerm_public_ip" "automate_pubip" {
-  name                         = "automate_pubip"
+resource "azurerm_public_ip" "automate2_pubip" {
+  name                         = "automate2_pubip"
   location                     = "${var.azure_region}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "dynamic"
-  domain_name_label            = "${var.automate_server_name}"
+  domain_name_label            = "${var.automate2_server_name}"
 
   tags {
     environment = "${var.azure_env}"
@@ -12,28 +12,28 @@ resource "azurerm_public_ip" "automate_pubip" {
 }
 
 #create the network interface and put it on the proper vlan/subnet
-resource "azurerm_network_interface" "automate_ip" {
-  name                = "automate_ip"
+resource "azurerm_network_interface" "automate2_ip" {
+  name                = "automate2_ip"
   location            = "${var.azure_region}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
 
   ip_configuration {
-    name                          = "automate_ipconf"
+    name                          = "automate2_ipconf"
     subnet_id                     = "${azurerm_subnet.subnet.id}"
     private_ip_address_allocation = "static"
-    private_ip_address            = "10.1.1.11"
-    public_ip_address_id          = "${azurerm_public_ip.automate_pubip.id}"
+    private_ip_address            = "10.1.1.12"
+    public_ip_address_id          = "${azurerm_public_ip.automate2_pubip.id}"
   }
 }
 
 #create the actual VM
-resource "azurerm_virtual_machine" "automate" {
-  name                  = "automate"
+resource "azurerm_virtual_machine" "automate2" {
+  name                  = "automate2"
   location              = "${var.azure_region}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
-  network_interface_ids = ["${azurerm_network_interface.automate_ip.id}"]
+  network_interface_ids = ["${azurerm_network_interface.automate2_ip.id}"]
   vm_size               = "${var.automate_vm_size}"
-  depends_on            = ["azurerm_virtual_machine.chef"]
+  depends_on            = ["azurerm_virtual_machine.automate"]
 
   storage_image_reference {
     publisher = "Canonical"
@@ -43,14 +43,14 @@ resource "azurerm_virtual_machine" "automate" {
   }
 
   storage_os_disk {
-    name              = "automate_osdisk1"
+    name              = "automate2_osdisk1"
     caching           = "ReadWrite"
     create_option     = "FromImage"
     managed_disk_type = "Standard_LRS"
   }
 
   os_profile {
-    computer_name  = "${var.automate_server_name}"
+    computer_name  = "${var.automate2_server_name}"
     admin_username = "${var.username}"
     admin_password = "${var.password}"
   }
@@ -64,7 +64,7 @@ resource "azurerm_virtual_machine" "automate" {
   }
 
   connection {
-    host     = "${azurerm_public_ip.automate_pubip.fqdn}"
+    host     = "${azurerm_public_ip.automate2_pubip.fqdn}"
     type     = "ssh"
     user     = "${var.username}"
     password = "${var.password}"
@@ -81,29 +81,19 @@ resource "azurerm_virtual_machine" "automate" {
   }
 
   provisioner "file" {
-    source      = "InstallChefAutomate.sh"
-    destination = "/tmp/InstallChefAutomate.sh"
+    source      = "InstallChefAutomate2.sh"
+    destination = "/tmp/InstallChefAutomate2.sh"
   }
 
   provisioner "file" {
-    source      = "automate.license"
-    destination = "/tmp/automate.license"
-  }
-
-  provisioner "file" {
-    source      = "05-a2-forwarder.conf"
-    destination = "/tmp/05-a2-forwarder.conf"
-  }
-
-  provisioner "file" {
-    source      = "profiles/"
-    destination = "/tmp"
+    source      = "config.toml"
+    destination = "/tmp/config.toml"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "sudo chmod +x /tmp/InstallChefAutomate.sh",
-      "sudo /tmp/InstallChefAutomate.sh ${var.automate_server_name} ${var.chef_server_name} ${var.chef_server_user} ${var.chef_server_org_shortname} ${var.automate_server_version} ${var.automate_server_user} ${var.automate_server_user_password} ${var.azure_region} ${var.username} ${var.inspec_version} > install.log",
+      "sudo chmod +x /tmp/InstallChefAutomate2.sh",
+      "sudo /tmp/InstallChefAutomate2.sh ${var.automate_server_name} ${var.chef_server_name} ${var.automate2_server_name}",
     ]
   }
 }
@@ -112,6 +102,6 @@ resource "azurerm_virtual_machine" "automate" {
 #   value = "${azurerm_public_ip.automate_pubip.ip_address}"
 # }
 
-output "afqdn" {
-  value = "${azurerm_public_ip.automate_pubip.fqdn}"
+output "a2fqdn" {
+  value = "${azurerm_public_ip.automate2_pubip.fqdn}"
 }
