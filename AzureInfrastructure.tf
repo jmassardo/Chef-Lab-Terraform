@@ -2,7 +2,7 @@
 
 # Create a resource group to contain all the objects
 resource "azurerm_resource_group" "rg" {
-  name     = "${var.azure_rg_name}"
+  name     = "${var.azure_rg_name}-${join("", split(":", timestamp()))}" #Removing the colons since Azure doesn't allow them.
   location = "${var.azure_region}"
 }
 
@@ -14,7 +14,7 @@ resource "azurerm_virtual_network" "vnet" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
-# Create the individual subnet for the web servers
+# Create the individual subnet for the servers
 resource "azurerm_subnet" "subnet" {
   name                 = "${var.azure_rg_name}_Subnet"
   resource_group_name  = "${azurerm_resource_group.rg.name}"
@@ -22,7 +22,7 @@ resource "azurerm_subnet" "subnet" {
   address_prefix       = "10.1.1.0/24"
 }
 
-# create the network security group to allow inbound access to the server
+# create the network security group to allow inbound access to the servers
 resource "azurerm_network_security_group" "nsg" {
   name                = "${var.azure_rg_name}_nsg"
   location            = "${var.azure_region}"

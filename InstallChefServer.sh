@@ -1,30 +1,26 @@
 #!/bin/bash
 
 automate_server_name=$1
-azure_region=$2
-chef_server_name=$3
-chef_server_version=$4
-chef_server_user=$5
-chef_server_user_password=$6
-chef_server_user_firstname=$7
-chef_server_user_lastname=$8
-chef_server_user_email=$9
-chef_server_org_shortname=${10}
-chef_server_org_fullname=${11}
-chef_server_install_pushjobs=${12}
-chef_server_pushjobs_version=${13}
-chef_server_install_manage=${14}
-chef_server_manage_version=${15}
-chefdk_version=${16}
+chef_server_name=$2
+chef_server_version=$3
+chef_server_user=$4
+chef_server_user_password=$5
+chef_server_user_firstname=$6
+chef_server_user_lastname=$7
+chef_server_user_email=$8
+chef_server_org_shortname=$9
+chef_server_org_fullname=${10}
+chef_server_install_pushjobs=${11}
+chef_server_pushjobs_version=${12}
+chef_server_install_manage=${13}
+chef_server_manage_version=${14}
+chefdk_version=${15}
 
-# make sure we have everythign we need
+# make sure we have everything we need
 apt-get update
 apt-get -y install curl
 
-echo 10.1.1.10 ${chef_server_name}.lab.local | sudo tee -a /etc/hosts
-echo 10.1.1.11 ${automate_server_name}.lab.local | sudo tee -a /etc/hosts
-echo 10.1.1.12 automate2.lab.local | sudo tee -a /etc/hosts
-sudo hostnamectl set-hostname ${chef_server_name}.lab.local
+sudo hostnamectl set-hostname ${chef_server_name}
 
 # create staging directories
 if [ ! -d /drop ]; then
@@ -55,15 +51,21 @@ fi
 # create user and organization
 if [ ! $(sudo chef-server-ctl user-list | grep $chef_server_user) ]; then
   echo "Creating $chef_server_user user and $chef_server_org_shortname organization..."
-  chef-server-ctl user-create $chef_server_user $chef_server_user_firstname $chef_server_user_lastname $chef_server_user_email $chef_server_user_password --filename /drop/${chef_server_user}.pem
+  chef-server-ctl user-create $chef_server_user $chef_server_user_firstname $chef_server_user_lastname $chef_server_user_email $chef_server_user_password --filename ${chef_server_user}.pem
   chef-server-ctl org-create $chef_server_org_shortname "$chef_server_org_fullname" --association_user $chef_server_user --filename ${chef_server_org_shortname}-validator.pem
 fi
 
+# fetch token
+echo "Fetching the admin token from the A2 server"
+scp -o StrictHostKeyChecking=no -i /home/labadmin/.ssh/id_rsa ${chef_server_user}@${automate_server_name}:/home/${chef_server_user}/admin_token.txt .
+ADMIN_TOKEN=$(cat admin_token.txt)
+
 # configure data collection
-chef-server-ctl set-secret data_collector token '93a49a4f2482c64126f7b6015e6b0f30284287ee4054ff8807fb63d9cbd1c506'
+echo "Configuring the data collector"
+chef-server-ctl set-secret data_collector token "${ADMIN_TOKEN}"
 chef-server-ctl restart nginx
-echo "data_collector['root_url'] = 'https://${automate_server_name}.lab.local/data-collector/v0/'" >> /etc/opscode/chef-server.rb
-echo "profiles['root_url'] = 'https://${automate_server_name}.lab.local'" >> /etc/opscode/chef-server.rb
+echo "data_collector['root_url'] = 'https://${automate_server_name}/data-collector/v0/'" >> /etc/opscode/chef-server.rb
+echo "profiles['root_url'] = 'https://${automate_server_name}'" >> /etc/opscode/chef-server.rb
 chef-server-ctl reconfigure
 
 # configure Manage if enabled

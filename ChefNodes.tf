@@ -5,7 +5,7 @@ resource "azurerm_public_ip" "node_pubip" {
   location                     = "${var.azure_region}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "dynamic"
-  domain_name_label            = "jm-node${count.index}"
+  domain_name_label            = "node${count.index}-${lower(substr("${join("", split(":", timestamp()))}", 8, -1))}"
 
   tags {
     environment = "${var.azure_env}"
@@ -22,9 +22,9 @@ resource "azurerm_network_interface" "node_ip" {
   ip_configuration {
     name                          = "node${count.index}_ipconf"
     subnet_id                     = "${azurerm_subnet.subnet.id}"
-    private_ip_address_allocation = "dynamic"
-
-    # public_ip_address_id          = ["${element(azurerm_public_ip.node_pubip.*.id, count.index)}"]
+    private_ip_address_allocation = "static"
+    private_ip_address            = "${cidrhost("10.1.1.20/24", 20+count.index)}"
+    public_ip_address_id          = "${element(azurerm_public_ip.node_pubip.*.id, count.index + 1)}"
   }
 }
 
@@ -36,7 +36,7 @@ resource "azurerm_virtual_machine" "node" {
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   network_interface_ids = ["${element(azurerm_network_interface.node_ip.*.id, count.index)}"]
   vm_size               = "${var.chef_node_vm_size}"
-  depends_on            = ["azurerm_virtual_machine.automate2"]
+  depends_on            = ["azurerm_virtual_machine.chef"]
 
   storage_image_reference {
     publisher = "Canonical"
@@ -53,7 +53,7 @@ resource "azurerm_virtual_machine" "node" {
   }
 
   os_profile {
-    computer_name  = "jm-tr-node${count.index}"
+    computer_name  = "node${count.index}"
     admin_username = "${var.username}"
     admin_password = "${var.password}"
   }
@@ -66,26 +66,26 @@ resource "azurerm_virtual_machine" "node" {
     environment = "${var.azure_env}"
   }
 
-  # connection {
+  connection {
+    host     = "${element(azurerm_public_ip.node_pubip.*.fqdn, count.index + 1)}"
+    type     = "ssh"
+    user     = "${var.username}"
+    password = "${var.password}"
+  }
 
-  #   host     = ["${element(azurerm_public_ip.node.*._pubip.fqdn, count.index)}"]
-  #   type     = "ssh"
-  #   user     = "${var.username}"
-  #   password = "${var.password}"
-  # }
+  provisioner "file" {
+    source      = "labadmin"
+    destination = "/home/${var.username}/.ssh/id_rsa"
+  }
 
-  # provisioner "file" {
-  #   source      = "labadmin"
-  #   destination = "/home/labadmin/.ssh/id_rsa"
-  # }
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 700 /home/${var.username}/.ssh/id_rsa",
+    ]
+  }
 
-  # provisioner "file" {
-  #   source      = "labadmin.pub"
-  #   destination = "/home/labadmin/.ssh/authorized_keys"
-  # }
+  provisioner "file" {
+    source      = "labadmin.pub"
+    destination = "/home/${var.username}/.ssh/authorized_keys"
+  }
 }
-
-# output "node${count.index}fqdn" {
-#   value = ["${element(azurerm_public_ip.node.*._pubip.fqdn, count.index)}"]
-# }
-

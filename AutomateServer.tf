@@ -4,7 +4,7 @@ resource "azurerm_public_ip" "automate_pubip" {
   location                     = "${var.azure_region}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "dynamic"
-  domain_name_label            = "${var.automate_server_name}"
+  domain_name_label            = "${var.automate_server_name}-${lower(substr("${join("", split(":", timestamp()))}", 8, -1))}"
 
   tags {
     environment = "${var.azure_env}"
@@ -33,7 +33,6 @@ resource "azurerm_virtual_machine" "automate" {
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   network_interface_ids = ["${azurerm_network_interface.automate_ip.id}"]
   vm_size               = "${var.automate_vm_size}"
-  depends_on            = ["azurerm_virtual_machine.chef"]
 
   storage_image_reference {
     publisher = "Canonical"
@@ -72,45 +71,30 @@ resource "azurerm_virtual_machine" "automate" {
 
   provisioner "file" {
     source      = "labadmin"
-    destination = "/home/labadmin/.ssh/id_rsa"
+    destination = "/home/${var.username}/.ssh/id_rsa"
   }
 
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 700 /home/${var.username}/.ssh/id_rsa",
+    ]
+  }
   provisioner "file" {
     source      = "labadmin.pub"
-    destination = "/home/labadmin/.ssh/authorized_keys"
+    destination = "/home/${var.username}/.ssh/authorized_keys"
   }
 
   provisioner "file" {
     source      = "InstallChefAutomate.sh"
     destination = "/tmp/InstallChefAutomate.sh"
   }
-
-  provisioner "file" {
-    source      = "automate.license"
-    destination = "/tmp/automate.license"
-  }
-
-  provisioner "file" {
-    source      = "05-a2-forwarder.conf"
-    destination = "/tmp/05-a2-forwarder.conf"
-  }
-
-  provisioner "file" {
-    source      = "profiles/"
-    destination = "/tmp"
-  }
-
   provisioner "remote-exec" {
     inline = [
       "sudo chmod +x /tmp/InstallChefAutomate.sh",
-      "sudo /tmp/InstallChefAutomate.sh ${var.automate_server_name} ${var.chef_server_name} ${var.chef_server_user} ${var.chef_server_org_shortname} ${var.automate_server_version} ${var.automate_server_user} ${var.automate_server_user_password} ${var.azure_region} ${var.username} ${var.inspec_version} > install.log",
+      "sudo /tmp/InstallChefAutomate.sh ${azurerm_public_ip.automate_pubip.fqdn} ${azurerm_public_ip.chef_pubip.fqdn}",
     ]
   }
 }
-
-# output "aip" {
-#   value = "${azurerm_public_ip.automate_pubip.ip_address}"
-# }
 
 output "afqdn" {
   value = "${azurerm_public_ip.automate_pubip.fqdn}"
