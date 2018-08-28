@@ -22,25 +22,17 @@ apt-get -y install curl
 
 sudo hostnamectl set-hostname ${chef_server_name}
 
-# create staging directories
-if [ ! -d /drop ]; then
-  mkdir /drop
-fi
-if [ ! -d /downloads ]; then
-  mkdir /downloads
-fi
-
 # download the Chef server package
 
-if [ ! -f /downloads/chef-server-core_${chef_server_version}-1_amd64.deb ]; then
+if [ ! -f chef-server-core_${chef_server_version}-1_amd64.deb ]; then
   echo "Downloading the Chef server package..."
-  wget -nv -P /downloads https://packages.chef.io/files/stable/chef-server/${chef_server_version}/ubuntu/16.04/chef-server-core_${chef_server_version}-1_amd64.deb
+  wget https://packages.chef.io/files/stable/chef-server/${chef_server_version}/ubuntu/16.04/chef-server-core_${chef_server_version}-1_amd64.deb
 fi
 
 # install Chef server
 if [ ! $(which chef-server-ctl) ]; then
   echo "Installing Chef server..."
-  dpkg -i /downloads/chef-server-core_${chef_server_version}-1_amd64.deb
+  dpkg -i chef-server-core_${chef_server_version}-1_amd64.deb
   chef-server-ctl reconfigure
 
   echo "Waiting for services..."
@@ -57,7 +49,7 @@ fi
 
 # fetch token
 echo "Fetching the admin token from the A2 server"
-scp -o StrictHostKeyChecking=no -i /home/labadmin/.ssh/id_rsa ${chef_server_user}@${automate_server_name}:/home/${chef_server_user}/admin_token.txt .
+scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${chef_server_user}@${automate_server_name}:~/admin_token.txt .
 ADMIN_TOKEN=$(cat admin_token.txt)
 
 # configure data collection
@@ -72,8 +64,8 @@ chef-server-ctl reconfigure
 if [ "$chef_server_install_manage" = "true" ]; then
   if [ ! $(which chef-manage-ctl) ]; then
     echo "Installing Chef Manage..."
-    wget -nv -P /downloads https://packages.chef.io/files/stable/chef-manage/${chef_server_manage_version}/ubuntu/16.04/chef-manage_${chef_server_manage_version}-1_amd64.deb
-    chef-server-ctl install chef-manage --path /downloads/chef-manage_${chef_server_manage_version}-1_amd64.deb
+    wget https://packages.chef.io/files/stable/chef-manage/${chef_server_manage_version}/ubuntu/16.04/chef-manage_${chef_server_manage_version}-1_amd64.deb
+    chef-server-ctl install chef-manage --path ~/chef-manage_${chef_server_manage_version}-1_amd64.deb
     chef-server-ctl reconfigure
     chef-manage-ctl reconfigure --accept-license
   fi
@@ -83,18 +75,18 @@ fi
 if [ "$chef_server_install_pushjobs" = "true" ]; then
   if [ ! $(which opscode-push-jobs-server-ctl) ]; then
     echo "Installing push jobs server..."
-    wget -nv -P /downloads https://packages.chef.io/files/stable/opscode-push-jobs-server/${chef_server_pushjobs_version}/ubuntu/16.04/opscode-push-jobs-server_${chef_server_pushjobs_version}-1_amd64.deb
-    chef-server-ctl install opscode-push-jobs-server --path /downloads/opscode-push-jobs-server_${chef_server_pushjobs_version}-1_amd64.deb
+    wget https://packages.chef.io/files/stable/opscode-push-jobs-server/${chef_server_pushjobs_version}/ubuntu/16.04/opscode-push-jobs-server_${chef_server_pushjobs_version}-1_amd64.deb
+    chef-server-ctl install opscode-push-jobs-server --path ~/opscode-push-jobs-server_${chef_server_pushjobs_version}-1_amd64.deb
     opscode-push-jobs-server-ctl reconfigure
     chef-server-ctl reconfigure
   fi
 fi
 
 echo "Installing ChefDK"
-wget -nv -P /downloads https://packages.chef.io/files/stable/chefdk/${chefdk_version}/ubuntu/16.04/chefdk_${chefdk_version}-1_amd64.deb
+wget https://packages.chef.io/files/stable/chefdk/${chefdk_version}/ubuntu/16.04/chefdk_${chefdk_version}-1_amd64.deb
 if [ ! $(which chef) ]; then
   echo "Installing ChefDK..."
-  dpkg -i /downloads/chefdk_${chefdk_version}-1_amd64.deb
+  dpkg -i chefdk_${chefdk_version}-1_amd64.deb
 fi
 
 echo "Your Chef server is ready!"

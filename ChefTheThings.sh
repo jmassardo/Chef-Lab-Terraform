@@ -1,9 +1,8 @@
 #!/bin/bash
 # Trap arguments
-node_count=$1
-chef_server_user=$2
-chef_server_name=$3
-chef_server_org_shortname=$4
+chef_server_user=$1
+chef_server_name=$2
+chef_server_org_shortname=$3
 
 # Build chef_repo structure
 if [ ! -d ~/chef_repo ]; then
@@ -49,14 +48,19 @@ cd ~/chef_repo/cookbooks
 git clone https://github.com/jmassardo/all_systems.git
 git clone https://github.com/jmassardo/cis-baseline.git
 
-cd ~/chef_repo/environments
-git clone https://github.com/jmassardo/Chef-Jenkins-GlobalEnvironments.git
-
 # Berks upload cookbooks
 cd ~/chef_repo/cookbooks/all_systems
 berks install
-berks upload
+berks upload --ssl-verify=false
 
 cd ~/chef_repo/cookbooks/cis-baseline
 berks install
-berks upload
+berks upload --ssl-verify=false
+
+# Git clone environments
+cd ~/chef_repo/environments
+git clone https://github.com/jmassardo/Chef-Jenkins-GlobalEnvironments.git
+
+# Upload environments
+knife environment from file ~/chef_repo/environments/Chef-Jenkins-GlobalEnvironments/dev.json
+knife environment from file ~/chef_repo/environments/Chef-Jenkins-GlobalEnvironments/prod.json

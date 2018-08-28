@@ -9,8 +9,6 @@ sysctl -w vm.max_map_count=262144
 sysctl -w vm.dirty_expire_centisecs=20000
 
 # #setup hostname stuff
-# echo 10.1.1.10 ${chef_server_name}.lab.local | sudo tee -a /etc/hosts
-# echo 10.1.1.11 ${automate_server_name}.lab.local | sudo tee -a /etc/hosts
 sudo hostnamectl set-hostname ${automate_server_name}
 
 # download the Chef Automate 2 package

@@ -89,23 +89,24 @@ resource "azurerm_virtual_machine" "jenkins" {
   }
 
   provisioner "file" {
+    source      = "jenkins.rc.local"
+    destination = "/home/${var.username}/rc.local"
+  }
+
+  provisioner "file" {
     source      = "InstalljenkinsServer.sh"
     destination = "/tmp/InstalljenkinsServer.sh"
   }
 
-  #DHparam file
-
   provisioner "remote-exec" {
     inline = [
       "sudo chmod +x /tmp/InstalljenkinsServer.sh",
-      "sudo /tmp/InstalljenkinsServer.sh ${var.automate_server_name} ${var.chef_server_name} ${var.jenkins_server_name} ${var.chefdk_version} > install.log ",
+      "sudo /tmp/InstalljenkinsServer.sh ${azurerm_public_ip.jenkins_pubip.fqdn} ${var.chefdk_version} ${var.username} ${azurerm_public_ip.chef_pubip.fqdn} ${var.chef_server_org_shortname} > install.log ",
+      "sudo mv -f ./rc.local /etc/rc.local",
+      "sudo ./etc/rc.local",
     ]
   }
 }
-
-# output "cip" {
-#   value = "${azurerm_public_ip.jenkins_pubip.ip_address}"
-# }
 
 output "jfqdn" {
   value = "${azurerm_public_ip.jenkins_pubip.fqdn}"
