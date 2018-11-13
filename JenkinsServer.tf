@@ -98,11 +98,19 @@ resource "azurerm_virtual_machine" "jenkins" {
     destination = "/tmp/InstalljenkinsServer.sh"
   }
 
+  provisioner "file" {
+    source      = "BootstrapNodes.sh"
+    destination = "/tmp/BootstrapNodes.sh"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "sudo chmod +x /tmp/InstalljenkinsServer.sh",
       "sudo /tmp/InstalljenkinsServer.sh ${azurerm_public_ip.jenkins_pubip.fqdn} ${var.chefdk_version} ${var.username} ${azurerm_public_ip.chef_pubip.fqdn} ${var.chef_server_org_shortname} > install.log ",
+      "sudo chmod +x /tmp/BootstrapNodes.sh",
+      "sudo /tmp/BootstrapNodes.sh ${var.username}  ${var.password}",
       "sudo mv -f ./rc.local /etc/rc.local",
+      "sudo chmod +x /etc/rc.local",
       "sudo ./etc/rc.local",
     ]
   }

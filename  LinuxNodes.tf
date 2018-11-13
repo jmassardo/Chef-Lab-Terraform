@@ -1,11 +1,11 @@
 #create a public IP address for the virtual machine
-resource "azurerm_public_ip" "node_pubip" {
+resource "azurerm_public_ip" "linuxnode_pubip" {
   count                        = "${var.chef_node_count}"
-  name                         = "node${count.index}_pubip"
+  name                         = "linuxnode${count.index}_pubip"
   location                     = "${var.azure_region}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "dynamic"
-  domain_name_label            = "node${count.index}-${lower(substr("${join("", split(":", timestamp()))}", 8, -1))}"
+  domain_name_label            = "linuxnode${count.index}-${lower(substr("${join("", split(":", timestamp()))}", 8, -1))}"
 
   tags {
     environment = "${var.azure_env}"
@@ -13,28 +13,28 @@ resource "azurerm_public_ip" "node_pubip" {
 }
 
 #create the network interface and put it on the proper vlan/subnet
-resource "azurerm_network_interface" "node_ip" {
+resource "azurerm_network_interface" "linuxnode_ip" {
   count               = "${var.chef_node_count}"
-  name                = "node${count.index}_ip"
+  name                = "linuxnode${count.index}_ip"
   location            = "${var.azure_region}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
 
   ip_configuration {
-    name                          = "node${count.index}_ipconf"
+    name                          = "linuxnode${count.index}_ipconf"
     subnet_id                     = "${azurerm_subnet.subnet.id}"
     private_ip_address_allocation = "static"
     private_ip_address            = "${cidrhost("10.1.1.20/24", 20+count.index)}"
-    public_ip_address_id          = "${element(azurerm_public_ip.node_pubip.*.id, count.index + 1)}"
+    public_ip_address_id          = "${element(azurerm_public_ip.linuxnode_pubip.*.id, count.index + 1)}"
   }
 }
 
 #create the actual VM
-resource "azurerm_virtual_machine" "node" {
+resource "azurerm_virtual_machine" "linuxnode" {
   count                 = "${var.chef_node_count}"
-  name                  = "node${count.index}"
+  name                  = "linuxnode${count.index}"
   location              = "${var.azure_region}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
-  network_interface_ids = ["${element(azurerm_network_interface.node_ip.*.id, count.index)}"]
+  network_interface_ids = ["${element(azurerm_network_interface.linuxnode_ip.*.id, count.index)}"]
   vm_size               = "${var.chef_node_vm_size}"
   depends_on            = ["azurerm_virtual_machine.chef"]
 
@@ -46,14 +46,14 @@ resource "azurerm_virtual_machine" "node" {
   }
 
   storage_os_disk {
-    name              = "node${count.index}_osdisk1"
+    name              = "linuxnode${count.index}_osdisk1"
     caching           = "ReadWrite"
     create_option     = "FromImage"
     managed_disk_type = "Standard_LRS"
   }
 
   os_profile {
-    computer_name  = "node${count.index}"
+    computer_name  = "linuxnode${count.index}"
     admin_username = "${var.username}"
     admin_password = "${var.password}"
   }
@@ -67,7 +67,7 @@ resource "azurerm_virtual_machine" "node" {
   }
 
   connection {
-    host     = "${element(azurerm_public_ip.node_pubip.*.fqdn, count.index + 1)}"
+    host     = "${element(azurerm_public_ip.linuxnode_pubip.*.fqdn, count.index + 1)}"
     type     = "ssh"
     user     = "${var.username}"
     password = "${var.password}"

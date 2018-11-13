@@ -88,10 +88,35 @@ resource "azurerm_virtual_machine" "automate" {
     source      = "InstallChefAutomate.sh"
     destination = "/tmp/InstallChefAutomate.sh"
   }
+
+  provisioner "file" {
+    source      = "profiles/admin-linux-baseline-2.2.2.tar.gz"
+    destination = "/tmp/admin-linux-baseline-2.2.2.tar.gz"
+  }
+
+
+  provisioner "file" {
+    source      = "profiles/admin-linux-patch-baseline-0.4.0.tar.gz"
+    destination = "/tmp/admin-linux-patch-baseline-0.4.0.tar.gz"
+  }
+
+
+  provisioner "file" {
+    source      = "profiles/admin-windows-baseline-1.1.0.tar.gz"
+    destination = "/tmp/admin-windows-baseline-1.1.0.tar.gz"
+  }
+
+
+  provisioner "file" {
+    source      = "profiles/admin-windows-patch-baseline-0.4.0.tar.gz"
+    destination = "/tmp/admin-windows-patch-baseline-0.4.0.tar.gz"
+  }
+
+
   provisioner "remote-exec" {
     inline = [
       "sudo chmod +x /tmp/InstallChefAutomate.sh",
-      "sudo /tmp/InstallChefAutomate.sh ${azurerm_public_ip.automate_pubip.fqdn} ${azurerm_public_ip.chef_pubip.fqdn}",
+      "sudo /tmp/InstallChefAutomate.sh ${azurerm_public_ip.automate_pubip.fqdn} ${azurerm_public_ip.chef_pubip.fqdn} ${var.username} ${var.password} ${var.chefdk_version}",
     ]
   }
 }
