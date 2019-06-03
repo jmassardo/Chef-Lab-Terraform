@@ -108,7 +108,7 @@ resource "azurerm_virtual_machine" "jenkins" {
       "sudo chmod +x /tmp/InstalljenkinsServer.sh",
       "sudo /tmp/InstalljenkinsServer.sh ${azurerm_public_ip.jenkins_pubip.fqdn} ${var.chefdk_version} ${var.username} ${azurerm_public_ip.chef_pubip.fqdn} ${var.chef_server_org_shortname} > install.log ",
       "sudo chmod +x /tmp/BootstrapNodes.sh",
-      "sudo /tmp/BootstrapNodes.sh ${var.username}  ${var.password}",
+      "sudo /tmp/BootstrapNodes.sh ${var.username}  ${var.password} > bootstrap_nodes.log",
     ]
   }
 }

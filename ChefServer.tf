@@ -101,7 +101,7 @@ resource "azurerm_virtual_machine" "chef" {
       "sudo chmod +x /tmp/InstallChefServer.sh",
       "sudo /tmp/InstallChefServer.sh ${azurerm_public_ip.automate_pubip.fqdn} ${azurerm_public_ip.chef_pubip.fqdn} ${var.chef_server_version} ${var.username} ${var.password} ${var.chef_server_user_firstname} ${var.chef_server_user_lastname} ${var.chef_server_user_email} ${var.chef_server_org_shortname} '${var.chef_server_org_fullname}' ${var.chef_server_install_pushjobs} ${var.chef_server_pushjobs_version} ${var.chef_server_install_manage} ${var.chef_server_manage_version} ${var.chefdk_version} > install.log ",
       "sudo chmod +x /tmp/ChefTheThings.sh",
-      "sudo /tmp/ChefTheThings.sh ${var.username} ${azurerm_public_ip.chef_pubip.fqdn} ${var.chef_server_org_shortname}",
+      "sudo /tmp/ChefTheThings.sh ${var.username} ${azurerm_public_ip.chef_pubip.fqdn} ${var.chef_server_org_shortname} > chef_the_things.log",
     ]
   }
 }
