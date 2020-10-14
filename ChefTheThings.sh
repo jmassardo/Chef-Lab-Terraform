@@ -48,6 +48,9 @@ cd ~/chef_repo/cookbooks
 git clone https://github.com/jmassardo/all_systems.git
 git clone https://github.com/jmassardo/cis-baseline.git
 
+# Accept Chef licenses
+export CHEF_LICENSE="accept"
+
 # Berks upload cookbooks
 cd ~/chef_repo/cookbooks/all_systems
 berks install

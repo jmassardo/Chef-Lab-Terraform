@@ -5,3 +5,6 @@ terraform.tfstate.backup
 delivery.license
 AzureCredentials.tf
 profiles/*
+.DS_Store
+output.log
+terraform.tfvars

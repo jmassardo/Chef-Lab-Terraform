@@ -20,6 +20,9 @@ apt-get -y install jenkins
 
 sudo hostnamectl set-hostname ${jenkins_server_name}
 
+# Accept Chef licenses
+export CHEF_LICENSE="accept"
+
 echo "Installing ChefDK..."
 wget https://packages.chef.io/files/stable/chefdk/${chefdk_version}/ubuntu/16.04/chefdk_${chefdk_version}-1_amd64.deb
 dpkg -i chefdk_${chefdk_version}-1_amd64.deb

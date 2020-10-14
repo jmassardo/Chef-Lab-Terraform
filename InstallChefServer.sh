@@ -16,6 +16,9 @@ chef_server_install_manage=${13}
 chef_server_manage_version=${14}
 chefdk_version=${15}
 
+# Accept Chef licenses
+export CHEF_LICENSE="accept"
+
 # make sure we have everything we need
 apt-get update
 apt-get -y install curl

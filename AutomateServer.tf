@@ -1,38 +1,34 @@
 #create a public IP address for the virtual machine
 resource "azurerm_public_ip" "automate_pubip" {
-  name                         = "automate_pubip"
-  location                     = "${var.azure_region}"
-  resource_group_name          = "${azurerm_resource_group.rg.name}"
-  public_ip_address_allocation = "dynamic"
-  domain_name_label            = "${var.automate_server_name}-${lower(substr("${join("", split(":", timestamp()))}", 8, -1))}"
-
-  tags {
-    environment = "${var.azure_env}"
-  }
+  name                = "automate_pubip"
+  location            = var.azure_region
+  resource_group_name = azurerm_resource_group.rg.name
+  allocation_method   = "Dynamic"
+  domain_name_label   = "${var.automate_server_name}-${lower(substr(join("", split(":", timestamp())), 8, -1))}"
 }
 
 #create the network interface and put it on the proper vlan/subnet
 resource "azurerm_network_interface" "automate_ip" {
   name                = "automate_ip"
-  location            = "${var.azure_region}"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = var.azure_region
+  resource_group_name = azurerm_resource_group.rg.name
 
   ip_configuration {
     name                          = "automate_ipconf"
-    subnet_id                     = "${azurerm_subnet.subnet.id}"
+    subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "static"
     private_ip_address            = "10.1.1.11"
-    public_ip_address_id          = "${azurerm_public_ip.automate_pubip.id}"
+    public_ip_address_id          = azurerm_public_ip.automate_pubip.id
   }
 }
 
 #create the actual VM
 resource "azurerm_virtual_machine" "automate" {
   name                  = "automate"
-  location              = "${var.azure_region}"
-  resource_group_name   = "${azurerm_resource_group.rg.name}"
-  network_interface_ids = ["${azurerm_network_interface.automate_ip.id}"]
-  vm_size               = "${var.automate_vm_size}"
+  location              = var.azure_region
+  resource_group_name   = azurerm_resource_group.rg.name
+  network_interface_ids = [azurerm_network_interface.automate_ip.id]
+  vm_size               = var.automate_vm_size
 
   storage_image_reference {
     publisher = "Canonical"
@@ -49,24 +45,20 @@ resource "azurerm_virtual_machine" "automate" {
   }
 
   os_profile {
-    computer_name  = "${var.automate_server_name}"
-    admin_username = "${var.username}"
-    admin_password = "${var.password}"
+    computer_name  = var.automate_server_name
+    admin_username = var.username
+    admin_password = var.password
   }
 
   os_profile_linux_config {
     disable_password_authentication = false
   }
 
-  tags {
-    environment = "${var.azure_env}"
-  }
-
   connection {
-    host     = "${azurerm_public_ip.automate_pubip.fqdn}"
+    host     = azurerm_public_ip.automate_pubip.fqdn
     type     = "ssh"
-    user     = "${var.username}"
-    password = "${var.password}"
+    user     = var.username
+    password = var.password
   }
 
   provisioner "file" {
@@ -94,24 +86,20 @@ resource "azurerm_virtual_machine" "automate" {
     destination = "/tmp/admin-linux-baseline-2.2.2.tar.gz"
   }
 
-
   provisioner "file" {
     source      = "profiles/admin-linux-patch-baseline-0.4.0.tar.gz"
     destination = "/tmp/admin-linux-patch-baseline-0.4.0.tar.gz"
   }
-
 
   provisioner "file" {
     source      = "profiles/admin-windows-baseline-1.1.0.tar.gz"
     destination = "/tmp/admin-windows-baseline-1.1.0.tar.gz"
   }
 
-
   provisioner "file" {
     source      = "profiles/admin-windows-patch-baseline-0.4.0.tar.gz"
     destination = "/tmp/admin-windows-patch-baseline-0.4.0.tar.gz"
   }
-
 
   provisioner "remote-exec" {
     inline = [
@@ -122,5 +110,6 @@ resource "azurerm_virtual_machine" "automate" {
 }
 
 output "afqdn" {
-  value = "${azurerm_public_ip.automate_pubip.fqdn}"
+  value = azurerm_public_ip.automate_pubip.fqdn
 }
+

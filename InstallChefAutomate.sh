@@ -35,6 +35,9 @@ if [ ! $(which chef) ]; then
   dpkg -i chefdk_${chefdk_version}-1_amd64.deb
 fi
 
+# Accept Chef licenses
+export CHEF_LICENSE="accept"
+
 # Upload profiles to Asset Store
 inspec compliance login localhost --insecure --user=admin --dctoken=$TOK
 inspec compliance upload /tmp/admin-linux-baseline-2.2.2.tar.gz
